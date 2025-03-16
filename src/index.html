@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicação SSE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #messages {
+            border: 1px solid #ccc;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: #e6f7ff;
+            border-radius: 4px;
+        }
+        .time {
+            color: #666;
+            font-size: 0.8em;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Aplicação com Server-Sent Events</h1>
+    <div id="messages"></div>
+    <button id="connect">Conectar ao servidor</button>
+    <button id="disconnect" disabled>Desconectar</button>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const connectButton = document.getElementById('connect');
+        const disconnectButton = document.getElementById('disconnect');
+        let eventSource = null;
+
+        function addMessage(text, type = 'info') {
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            
+            const time = document.createElement('span');
+            time.className = 'time';
+            time.textContent = new Date().toLocaleTimeString() + ' - ';
+            
+            message.appendChild(time);
+            message.appendChild(document.createTextNode(text));
+            messagesDiv.appendChild(message);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function connect() {
+            // Normalmente, você apontaria para um endpoint real do seu servidor
+            // Para este exemplo, usaremos um endpoint fictício
+            const serverUrl = 'http://localhost:3000/sse-endpoint';
+            
+            addMessage('Tentando conectar ao servidor...', 'connecting');
+            
+            try {
+                // Na prática, você substituiria esta URL pelo seu endpoint real
+                // Como não temos um servidor real, vamos simular com um exemplo
+                eventSource = new EventSource(serverUrl);
+                
+                // Simulando uma conexão bem-sucedida com setTimeout
+                setTimeout(() => {
+                    simulateServerEvents();
+                    connectButton.disabled = true;
+                    disconnectButton.disabled = false;
+                }, 500);
+                
+                eventSource.onopen = function() {
+                    addMessage('Conexão estabelecida com o servidor!', 'success');
+                };
+                
+                eventSource.onmessage = function(event) {
+                    addMessage('Mensagem recebida: ' + event.data);
+                };
+                
+                eventSource.onerror = function() {
+                    addMessage('Erro na conexão com o servidor', 'error');
+                    disconnect();
+                };
+                
+                // Lidando com tipos de eventos personalizados
+                eventSource.addEventListener('update', function(event) {
+                    const data = JSON.parse(event.data);
+                    addMessage(`Atualização: ${data.message} (${data.id})`, 'update');
+                });
+                
+                eventSource.addEventListener('alert', function(event) {
+                    addMessage('ALERTA: ' + event.data, 'alert');
+                });
+            } catch (error) {
+                addMessage('Erro ao criar conexão: ' + error.message, 'error');
+            }
+        }
+
+        function disconnect() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                addMessage('Desconectado do servidor', 'info');
+                connectButton.disabled = false;
+                disconnectButton.disabled = true;
+            }
+        }
+
+        // Simulador de eventos do servidor (apenas para demonstração)
+        function simulateServerEvents() {
+            // Simulando mensagens do servidor em intervalos regulares
+            let count = 1;
+            
+            // Simulando uma mensagem regular
+            setTimeout(() => {
+                const event = new MessageEvent('message', {
+                    data: 'Isto é uma mensagem simples do servidor'
+                });
+                eventSource.dispatchEvent(event);
+            }, 1000);
+            
+            // Simulando um evento de atualização
+            setTimeout(() => {
+                const updateEvent = new MessageEvent('update', {
+                    data: JSON.stringify({
+                        id: 42,
+                        message: 'Dados atualizados'
+                    })
+                });
+                eventSource.dispatchEvent(updateEvent);
+            }, 2500);
+            
+            // Simulando um alerta
+            setTimeout(() => {
+                const alertEvent = new MessageEvent('alert', {
+                    data: 'Atenção! Este é um alerta importante'
+                });
+                eventSource.dispatchEvent(alertEvent);
+            }, 4000);
+            
+            // Configurando um intervalo para simular mensagens periódicas
+            const intervalId = setInterval(() => {
+                if (!eventSource) {
+                    clearInterval(intervalId);
+                    return;
+                }
+                
+                const event = new MessageEvent('message', {
+                    data: `Atualização periódica #${count}`
+                });
+                eventSource.dispatchEvent(event);
+                count++;
+                
+                // Vamos parar depois de algumas mensagens
+                if (count > 5) {
+                    clearInterval(intervalId);
+                }
+            }, 3000);
+        }
+
+        connectButton.addEventListener('click', connect);
+        disconnectButton.addEventListener('click', disconnect);
+        
+        // Mensagem inicial
+        addMessage('Aplicação iniciada. Clique em "Conectar ao servidor" para começar a receber eventos.', 'info');
+    </script>
+</body>
+</html>
