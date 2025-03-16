@@ -50,13 +50,6 @@ O servidor envia três tipos de eventos:
 - **update**: Dados estruturados com ID e mensagem
 - **alert**: Notificações importantes
 
-## Estrutura do Projeto
-
-- `index.js` - Servidor SSE principal
-- `frontend.js` - Servidor para a aplicação frontend
-- `index.html` - Interface do usuário para testar o SSE
-- `package.json` - Definição do projeto e dependências
-
 ## Tecnologias Utilizadas
 
 - Node.js
